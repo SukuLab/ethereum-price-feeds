@@ -15,6 +15,7 @@
   },
   "devDependencies": {},
   "scripts": {
+    "flatten": "npx truffle-flattener ./contracts/SUKUPriceOracle.sol --output ./SUKUPriceOracle_flat.sol",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

@@ -10,7 +10,7 @@ contract SUKUPriceOracle {
     using SafeMath for uint256;
     /// @notice Indicator that this is a PriceOracle contract (for inspection)
     bool public constant isPriceOracle = true;
-    uint256 constant mantissaDecimals = 18;
+    uint256 constant MANTISSA_DECIMALS = 18;
 
     AggregatorV3Interface internal priceFeedETHUSD;
     AggregatorV3Interface internal priceFeedUSDCETH;
@@ -33,22 +33,31 @@ contract SUKUPriceOracle {
      */
     function getUnderlyingPrice(address cToken) public view returns (uint256) {
         string memory cTokenSymbol = CTokenInterface(cToken).symbol();
+        // sETH doesn't not have an underlying field
         if (compareStrings(cTokenSymbol, "sETH")) {
             return getETHUSDCPrice();
-        } else if (compareStrings(cTokenSymbol, "sUSDC")) {
+        }
+        address underlyingAddress = CErc20Interface(cToken).underlying();
+        uint underlyingDecimals = Erc20Interface(underlyingAddress).decimals();
+        // Becuase decimals places differ among contracts it's necessary to
+        //  scale the price so that the values between tokens stays as expected
+        uint256 priceFactor = MANTISSA_DECIMALS.sub(underlyingDecimals);
+        if (compareStrings(cTokenSymbol, "sUSDC")) {
             return
-                getETHUSDCPrice().mul(getUSDCETHPrice()).div(
-                    10**mantissaDecimals
-                );
+                getETHUSDCPrice()
+                    .mul(getUSDCETHPrice())
+                    .div(10**MANTISSA_DECIMALS)
+                    .mul(10**priceFactor);
         } else if (compareStrings(cTokenSymbol, "sSUKU")) {
             uint256 SUKUETHpriceMantissa =
                 uniswapPriceOracle.consult(
                     address(CErc20Interface(address(cToken)).underlying())
                 );
             return
-                getETHUSDCPrice().mul(SUKUETHpriceMantissa).div(
-                    10**mantissaDecimals
-                );
+                getETHUSDCPrice()
+                    .mul(SUKUETHpriceMantissa)
+                    .div(10**MANTISSA_DECIMALS)
+                    .mul(10**priceFactor);
         } else {
             revert("This is not a supported market address.");
         }
@@ -70,7 +79,7 @@ contract SUKUPriceOracle {
         uint256 decimals = priceFeedETHUSD.decimals();
         // Add decimal places to format an 18 decimal mantissa
         uint256 priceMantissa =
-            uint256(price).mul(10**(mantissaDecimals.sub(decimals)));
+            uint256(price).mul(10**(MANTISSA_DECIMALS.sub(decimals)));
 
         return priceMantissa;
     }
@@ -91,7 +100,7 @@ contract SUKUPriceOracle {
         uint256 decimals = priceFeedUSDCETH.decimals();
         // Add decimal places to format an 18 decimal mantissa
         uint256 priceMantissa =
-            uint256(price).mul(10**(mantissaDecimals.sub(decimals)));
+            uint256(price).mul(10**(MANTISSA_DECIMALS.sub(decimals)));
 
         return priceMantissa;
     }
