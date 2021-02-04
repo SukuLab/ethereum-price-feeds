@@ -11,8 +11,9 @@ import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
 // note that the price average is only guaranteed to be over at least 1 period, but may be over a longer period
 contract UniswapPriceOracle {
     using FixedPoint for *;
-
     event Update(uint32 blockTimestampLast);
+    
+    address public owner;
 
     bool public isUniswapPriceOracle = true;
 
@@ -34,6 +35,7 @@ contract UniswapPriceOracle {
         address tokenA,
         address tokenB
     ) public {
+        owner = msg.sender;
         IUniswapV2Pair _pair =
             IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB));
         pair = _pair;
@@ -51,6 +53,7 @@ contract UniswapPriceOracle {
     }
 
     function update() external {
+        require(msg.sender == owner, "This function is restricted to the contract's owner");
         (
             uint256 price0Cumulative,
             uint256 price1Cumulative,
