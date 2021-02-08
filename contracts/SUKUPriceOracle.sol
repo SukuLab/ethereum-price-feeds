@@ -14,16 +14,18 @@ contract SUKUPriceOracle {
 
     AggregatorV3Interface internal priceFeedETHUSD;
     AggregatorV3Interface internal priceFeedUSDCETH;
-    UniswapPriceOracleInterface internal uniswapPriceOracle;
+    UniswapPriceOracleInterface internal sukuUniswapPriceOracle;
 
     constructor(
         address priceFeedETHUSD_,
         address priceFeedUSDCETH_,
-        address uniswapPriceOracle_
+        address sukuUniswapPriceOracle_
     ) public {
         priceFeedETHUSD = AggregatorV3Interface(priceFeedETHUSD_);
         priceFeedUSDCETH = AggregatorV3Interface(priceFeedUSDCETH_);
-        uniswapPriceOracle = UniswapPriceOracleInterface(uniswapPriceOracle_);
+        sukuUniswapPriceOracle = UniswapPriceOracleInterface(
+            sukuUniswapPriceOracle_
+        );
     }
 
     /**
@@ -38,7 +40,8 @@ contract SUKUPriceOracle {
             return getETHUSDCPrice();
         }
         address underlyingAddress = CErc20Interface(cToken).underlying();
-        uint underlyingDecimals = Erc20Interface(underlyingAddress).decimals();
+        uint256 underlyingDecimals =
+            Erc20Interface(underlyingAddress).decimals();
         // Becuase decimals places differ among contracts it's necessary to
         //  scale the price so that the values between tokens stays as expected
         uint256 priceFactor = MANTISSA_DECIMALS.sub(underlyingDecimals);
@@ -50,7 +53,7 @@ contract SUKUPriceOracle {
                     .mul(10**priceFactor);
         } else if (compareStrings(cTokenSymbol, "sSUKU")) {
             uint256 SUKUETHpriceMantissa =
-                uniswapPriceOracle.consult(
+                sukuUniswapPriceOracle.consult(
                     address(CErc20Interface(address(cToken)).underlying())
                 );
             return
@@ -58,6 +61,9 @@ contract SUKUPriceOracle {
                     .mul(SUKUETHpriceMantissa)
                     .div(10**MANTISSA_DECIMALS)
                     .mul(10**priceFactor);
+        } else if (compareStrings(cTokenSymbol, "sWHBAR")) {
+            uint256 hbarMantissa = 100000000000000000;
+            return hbarMantissa.div(10**MANTISSA_DECIMALS).mul(10**priceFactor);
         } else {
             revert("This is not a supported market address.");
         }
