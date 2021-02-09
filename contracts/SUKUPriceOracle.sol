@@ -49,8 +49,8 @@ contract SUKUPriceOracle {
             return
                 getETHUSDCPrice()
                     .mul(getUSDCETHPrice())
-                    .div(10**MANTISSA_DECIMALS)
-                    .mul(10**priceFactor);
+                    .mul(10**priceFactor)
+                    .div(10**MANTISSA_DECIMALS);
         } else if (compareStrings(cTokenSymbol, "sSUKU")) {
             uint256 SUKUETHpriceMantissa =
                 sukuUniswapPriceOracle.consult(
@@ -59,11 +59,11 @@ contract SUKUPriceOracle {
             return
                 getETHUSDCPrice()
                     .mul(SUKUETHpriceMantissa)
-                    .div(10**MANTISSA_DECIMALS)
-                    .mul(10**priceFactor);
+                    .mul(10**priceFactor)
+                    .div(10**MANTISSA_DECIMALS);
         } else if (compareStrings(cTokenSymbol, "sWHBAR")) {
             uint256 hbarMantissa = 100000000000000000;
-            return hbarMantissa.div(10**MANTISSA_DECIMALS).mul(10**priceFactor);
+            return hbarMantissa.mul(10**priceFactor).div(10**MANTISSA_DECIMALS);
         } else {
             revert("This is not a supported market address.");
         }
