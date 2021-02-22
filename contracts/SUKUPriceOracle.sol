@@ -15,55 +15,63 @@ contract SUKUPriceOracle {
     AggregatorV3Interface internal priceFeedETHUSD;
     AggregatorV3Interface internal priceFeedUSDCETH;
     UniswapPriceOracleInterface internal sukuUniswapPriceOracle;
+    UniswapPriceOracleInterface internal whbarUniswapPriceOracle;
 
     constructor(
         address priceFeedETHUSD_,
         address priceFeedUSDCETH_,
-        address sukuUniswapPriceOracle_
+        address sukuUniswapPriceOracle_,
+        address whbarUniswapPriceOracle_
     ) public {
         priceFeedETHUSD = AggregatorV3Interface(priceFeedETHUSD_);
         priceFeedUSDCETH = AggregatorV3Interface(priceFeedUSDCETH_);
         sukuUniswapPriceOracle = UniswapPriceOracleInterface(
             sukuUniswapPriceOracle_
         );
+        whbarUniswapPriceOracle = UniswapPriceOracleInterface(
+            whbarUniswapPriceOracle_
+        );
     }
 
     /**
-     * @notice Get the current price of a supported cToken underlying
-     * @param cToken The address of the market (token)
+     * @notice Get the current price of a supported sToken underlying
+     * @param sToken The address of the market (token)
      * @return USD price mantissa or failure for unsupported markets
      */
-    function getUnderlyingPrice(address cToken) public view returns (uint256) {
-        string memory cTokenSymbol = CTokenInterface(cToken).symbol();
+    function getUnderlyingPrice(address sToken) public view returns (uint256) {
+        string memory sTokenSymbol = CTokenInterface(sToken).symbol();
         // sETH doesn't not have an underlying field
-        if (compareStrings(cTokenSymbol, "sETH")) {
+        if (compareStrings(sTokenSymbol, "sETH")) {
             return getETHUSDCPrice();
         }
-        address underlyingAddress = CErc20Interface(cToken).underlying();
+        address underlyingAddress = CErc20Interface(sToken).underlying();
         uint256 underlyingDecimals =
             Erc20Interface(underlyingAddress).decimals();
         // Becuase decimals places differ among contracts it's necessary to
         //  scale the price so that the values between tokens stays as expected
         uint256 priceFactor = MANTISSA_DECIMALS.sub(underlyingDecimals);
-        if (compareStrings(cTokenSymbol, "sUSDC")) {
+        if (compareStrings(sTokenSymbol, "sUSDC")) {
             return
                 getETHUSDCPrice()
                     .mul(getUSDCETHPrice())
                     .mul(10**priceFactor)
                     .div(10**MANTISSA_DECIMALS);
-        } else if (compareStrings(cTokenSymbol, "sSUKU")) {
+        } else if (compareStrings(sTokenSymbol, "sSUKU")) {
             uint256 SUKUETHpriceMantissa =
                 sukuUniswapPriceOracle.consult(
-                    address(CErc20Interface(address(cToken)).underlying())
+                    address(CErc20Interface(address(sToken)).underlying())
                 );
             return
                 getETHUSDCPrice()
                     .mul(SUKUETHpriceMantissa)
                     .mul(10**priceFactor)
                     .div(10**MANTISSA_DECIMALS);
-        } else if (compareStrings(cTokenSymbol, "sWHBAR")) {
-            uint256 hbarMantissa = 100000000000000000;
-            return hbarMantissa.mul(10**priceFactor).div(10**MANTISSA_DECIMALS);
+        } else if (compareStrings(sTokenSymbol, "sWHBAR")) {
+            uint256 wHBARUSDCpriceMantissa =
+                whbarUniswapPriceOracle.consult(
+                    address(CErc20Interface(address(sToken)).underlying())
+                );
+            return wHBARUSDCpriceMantissa.mul(10**priceFactor);
         } else {
             revert("This is not a supported market address.");
         }
