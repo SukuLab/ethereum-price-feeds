@@ -3,21 +3,20 @@
   "version": "1.0.0",
   "description": "",
   "main": "truffle-config.js",
-  "directories": {
-    "test": "test"
+  "scripts": {
+    "flatten:suku": "truffle-flattener ./contracts/SUKUPriceOracle.sol --output ./SUKUPriceOracle_flat.sol",
+    "flatten:uni": "truffle-flattener ./contracts/UniswapPriceOracle.sol --output ./UniswapPriceOracle_flat.sol",
+    "compile": "truffle compile"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.3.0",
     "@uniswap/lib": "^4.0.1-alpha",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
-    "truffle": "^5.1.62"
+    "truffle": "^5.1.65",
+    "truffle-flattener": "^1.5.0"
   },
   "devDependencies": {},
-  "scripts": {
-    "flatten": "npx truffle-flattener ./contracts/SUKUPriceOracle.sol --output ./SUKUPriceOracle_flat.sol",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "",
   "license": "ISC"
 }

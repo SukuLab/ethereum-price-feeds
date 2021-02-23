@@ -14,50 +14,64 @@ contract SUKUPriceOracle {
 
     AggregatorV3Interface internal priceFeedETHUSD;
     AggregatorV3Interface internal priceFeedUSDCETH;
-    UniswapPriceOracleInterface internal uniswapPriceOracle;
+    UniswapPriceOracleInterface internal sukuUniswapPriceOracle;
+    UniswapPriceOracleInterface internal whbarUniswapPriceOracle;
 
     constructor(
         address priceFeedETHUSD_,
         address priceFeedUSDCETH_,
-        address uniswapPriceOracle_
+        address sukuUniswapPriceOracle_,
+        address whbarUniswapPriceOracle_
     ) public {
         priceFeedETHUSD = AggregatorV3Interface(priceFeedETHUSD_);
         priceFeedUSDCETH = AggregatorV3Interface(priceFeedUSDCETH_);
-        uniswapPriceOracle = UniswapPriceOracleInterface(uniswapPriceOracle_);
+        sukuUniswapPriceOracle = UniswapPriceOracleInterface(
+            sukuUniswapPriceOracle_
+        );
+        whbarUniswapPriceOracle = UniswapPriceOracleInterface(
+            whbarUniswapPriceOracle_
+        );
     }
 
     /**
-     * @notice Get the current price of a supported cToken underlying
-     * @param cToken The address of the market (token)
+     * @notice Get the current price of a supported sToken underlying
+     * @param sToken The address of the market (token)
      * @return USD price mantissa or failure for unsupported markets
      */
-    function getUnderlyingPrice(address cToken) public view returns (uint256) {
-        string memory cTokenSymbol = CTokenInterface(cToken).symbol();
+    function getUnderlyingPrice(address sToken) public view returns (uint256) {
+        string memory sTokenSymbol = CTokenInterface(sToken).symbol();
         // sETH doesn't not have an underlying field
-        if (compareStrings(cTokenSymbol, "sETH")) {
+        if (compareStrings(sTokenSymbol, "sETH")) {
             return getETHUSDCPrice();
         }
-        address underlyingAddress = CErc20Interface(cToken).underlying();
-        uint underlyingDecimals = Erc20Interface(underlyingAddress).decimals();
+        address underlyingAddress = CErc20Interface(sToken).underlying();
+        uint256 underlyingDecimals =
+            Erc20Interface(underlyingAddress).decimals();
         // Becuase decimals places differ among contracts it's necessary to
         //  scale the price so that the values between tokens stays as expected
         uint256 priceFactor = MANTISSA_DECIMALS.sub(underlyingDecimals);
-        if (compareStrings(cTokenSymbol, "sUSDC")) {
+        if (compareStrings(sTokenSymbol, "sUSDC")) {
             return
                 getETHUSDCPrice()
                     .mul(getUSDCETHPrice())
-                    .div(10**MANTISSA_DECIMALS)
-                    .mul(10**priceFactor);
-        } else if (compareStrings(cTokenSymbol, "sSUKU")) {
+                    .mul(10**priceFactor)
+                    .div(10**MANTISSA_DECIMALS);
+        } else if (compareStrings(sTokenSymbol, "sSUKU")) {
             uint256 SUKUETHpriceMantissa =
-                uniswapPriceOracle.consult(
-                    address(CErc20Interface(address(cToken)).underlying())
+                sukuUniswapPriceOracle.consult(
+                    address(CErc20Interface(address(sToken)).underlying())
                 );
             return
                 getETHUSDCPrice()
                     .mul(SUKUETHpriceMantissa)
-                    .div(10**MANTISSA_DECIMALS)
-                    .mul(10**priceFactor);
+                    .mul(10**priceFactor)
+                    .div(10**MANTISSA_DECIMALS);
+        } else if (compareStrings(sTokenSymbol, "sWHBAR")) {
+            uint256 wHBARUSDCpriceMantissa =
+                whbarUniswapPriceOracle.consult(
+                    address(CErc20Interface(address(sToken)).underlying())
+                );
+            return wHBARUSDCpriceMantissa.mul(10**priceFactor);
         } else {
             revert("This is not a supported market address.");
         }
