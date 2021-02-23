@@ -6,7 +6,6 @@
   "scripts": {
     "flatten:suku": "truffle-flattener ./contracts/SUKUPriceOracle.sol --output ./SUKUPriceOracle_flat.sol",
     "flatten:uni": "truffle-flattener ./contracts/UniswapPriceOracle.sol --output ./UniswapPriceOracle_flat.sol",
-    "flatten:sukutemp": "truffle-flattener ./contracts/SUKUPriceOracle_TEMP.sol --output ./SUKUPriceOracle_TEMP.sol",
     "compile": "truffle compile"
   },
   "dependencies": {
